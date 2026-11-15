@@ -1,10 +1,11 @@
 import os,json,urllib.request as R
 S=1;C=0;Y=-1;N=0;L=200000;F='abcdefgh'
 V=[0,100,320,330,500,900,0]
-KN=[-33,-31,-18,-14,14,18,31,33];D=[-16,-1,1,16,-17,-15,15,17];KI=sorted(D)
+KN=[-33,-31,-18,-14,14,18,31,33];D=[-16,-1,1,16,-17,-15,15,17]
+PT='00000024248:48>B8>FL>FPXHR^r0000'
 def Z(q,v):
- t=abs(v);r,c=q>>4,q&7;a=r if v>0 else 7-r;e=14-abs(2*c-7)-abs(2*r-7)
- return(V[t]+e*(1<t<5)+6*a*(t==1)-e//2*(t==6))*((v>0)*2-1)
+ t=abs(v);r,c=q>>4,q&7;e=14-abs(2*c-7)-abs(2*r-7)
+ return(V[t]+(ord(PT[(r if v>0 else 7-r)*4+min(c,7-c)])-48 if t==1 else e*(1<t<5)-e//2*(t==6)))*((v>0)*2-1)
 def P(f):
  global B,S,C,Y,KP,SC
  B=[0]*128;S=1;C=0;Y=-1
@@ -14,11 +15,11 @@ def P(f):
   elif ch.isdigit():c+=int(ch)
   else:B[r*16+c]=('pnbrqk'.index(ch.lower())+1)*((ch<'a')*2-1);c+=1
  S=1-2*(p[1]=='b')
- for ch in p[2]:C|=1<<'KQkq'.find(ch)if ch!='-'else 0
- Y=(int(p[3][1])-1)*16+F.index(p[3][0])if p[3]!='-'else-1
+ for ch in p[2]:C|=1<<'KQkq-'.find(ch)
+ Y=(int(p[3][1])-1)*16+ord(p[3][0])-97 if p[3]!='-'else-1
  KP=[B.index(6),B.index(-6)];SC=sum(map(Z,range(128),B))
 def A(q,by):
- for O,t,m in(((15,17),1,-by),(KN,2,1),(KI,6,1)):
+ for O,t,m in(((15,17),1,-by),(KN,2,1),(D,6,1)):
   for d in O:
    s=q+m*d
    if not s&0x88 and B[s]==by*t:return 1
@@ -48,7 +49,7 @@ def G():
     if B[o]*S<0:ms+=[(f,o,p)for p in((5,4,3,2)if o>>4==pr else(0,))]
     elif o==Y:ms.append((f,o,9))
   else:
-   ds=(KN,D[4:],D[:4],D,KI)[t-2]
+   ds=(KN,D[4:],D[:4],D,D)[t-2]
    for d in ds:
     o=f+d
     while not o&0x88:
@@ -86,7 +87,7 @@ def M(m,u=0):
  S=-S
  return un
 def T(m):
- u=M(m);return u if not A(KP[S>0],S)else(M(m,u)or 0)
+ u=M(m);return u if not A(KP[S>0],S)else M(m,u)
 def E():return SC*S
 def Q(a,b,q):
  global N
@@ -96,7 +97,7 @@ def Q(a,b,q):
  for m in G():
   v=B[m[1]]
   if not v and m[2]!=9:continue
-  if bs+V[abs(v)]+150<a:continue
+  if bs+V[-v*S]+150<a:continue
   un=T(m)
   if not un:continue
   sc=-Q(-b,-a,q-1);M(m,un)
@@ -108,7 +109,7 @@ def Sr(d,a,b):
  N+=1
  if N>L:return E()
  if d<=0:return Q(a,b,6)
- ms=G();ms.sort(key=lambda m:(-V[abs(B[m[1]])],V[abs(B[m[0]])]));lg=0;bs=-99999
+ ms=G();ms.sort(key=lambda m:(-V[-B[m[1]]*S],V[B[m[0]]*S]));lg=0;bs=-99999
  for m in ms:
   un=T(m)
   if not un:continue
@@ -117,7 +118,7 @@ def Sr(d,a,b):
   if a>=b:break
  if not lg:return -99999 if A(KP[S<0],-S)else 0
  return bs
-def W(m):a,b,p=m;return F[a&7]+str((a>>4)+1)+F[b&7]+str((b>>4)+1)+('nbrq'[p-2]if 1<p<9 else'')
+def W(m):a,b,p=m;return F[a&7]+str(a//16+1)+F[b&7]+str(b//16+1)+('nbrq'[p-2]if 1<p<9 else'')
 def Ch(fen,legal):
  global N
  P(fen);cs=[]
@@ -141,7 +142,7 @@ def main():
   q=R.Request(U+p,data=json.dumps(o).encode());return json.load(R.urlopen(q))
  st=rq('/game',{})
  while 1:
-  s=st.get('status')
+  s=st['status']
   if s=='done':break
   if s!='your_move':st=rq('/game',{});continue
   mv=Ch(st['fen'],st['legal_moves']);st=rq('/move',{'game':st['game'],'move':mv})
