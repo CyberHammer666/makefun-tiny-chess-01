@@ -1,5 +1,5 @@
 import os,json,urllib.request as R
-S=1;C=0;Y=-1;N=0;L=40000;F='abcdefgh'
+S=1;C=0;Y=-1;N=0;L=100000;F='abcdefgh'
 V=[0,100,320,330,500,900,0]
 KN=[-33,-31,-18,-14,14,18,31,33];D=[-16,-1,1,16,-17,-15,15,17];KI=sorted(D)
 def P(f):
@@ -9,7 +9,7 @@ def P(f):
  for ch in p[0]:
   if ch=='/':r-=1;c=0
   elif ch.isdigit():c+=int(ch)
-  else:B[r*16+c]=('pnbrqk'.index(ch.lower())+1)*(ch.isupper()*2-1);c+=1
+  else:B[r*16+c]=('pnbrqk'.index(ch.lower())+1)*((ch<'a')*2-1);c+=1
  S=1-2*(p[1]=='b');C=sum(1<<'KQkq'.index(ch)for ch in p[2]if ch in'KQkq')
  Y=(int(p[3][1])-1)*16+F.index(p[3][0])if p[3]!='-'else-1
  KP=[B.index(6),B.index(-6)]
@@ -38,12 +38,10 @@ def G():
     if o>>4==pr:ms+=[(f,o,p)for p in(5,4,3,2)]
     else:
      ms.append((f,o,0))
-     if f>>4==(1 if S>0 else 6)and not B[o+dd]:ms.append((f,o+dd,0))
+     if f>>4==1+5*(S<0)and not B[o+dd]:ms.append((f,o+dd,0))
    for o in(f+dd-1,f+dd+1):
     if o&0x88:continue
-    if B[o]*S<0:
-     if o>>4==pr:ms+=[(f,o,p)for p in(5,4,3,2)]
-     else:ms.append((f,o,0))
+    if B[o]*S<0:ms+=[(f,o,p)for p in((5,4,3,2)if o>>4==pr else(0,))]
     elif o==Y:ms.append((f,o,9))
   else:
    ds=(KN,D[4:],D[:4],D,KI)[t-2]
@@ -57,9 +55,9 @@ def G():
      if t in(2,6):break
      o+=d
    if t==6:
-    h=4 if S>0 else 116;e=-S;z=2*(S<0)
+    h=116-112*(S>0);e=-S;z=2*(S<0)
     for k,bt in((1,1<<z),(-1,2<<z)):
-     if C&bt and not B[h+k]and not B[h+2*k]and(k>0 or not B[h+3*k])and not A(h,e)and not A(h+k,e)and not A(h+2*k,e):ms.append((h,h+2*k,0))
+     if C&bt and B[h+k]==B[h+2*k]==0 and(k>0 or B[h+3*k]==0)and not A(h,e)and not A(h+k,e)and not A(h+2*k,e):ms.append((h,h+2*k,0))
  return ms
 def M(m,u=0):
  global S,C,Y
@@ -90,14 +88,28 @@ def E():
   v=B[q]
   if q&0x88 or not v:continue
   t=abs(v);r=q>>4;c=q&7;a=r if v>0 else 7-r;e=14-abs(2*c-7)-abs(2*r-7)
-  sc=V[t]+e*(1<t<6)-e//2*(t==6)+6*a*(t==1)+4*(a==6)*(t==4)
-  s+=sc if v>0 else -sc
+  sc=V[t]+e*(1<t<6)+6*a*(t==1)
+  s+=sc*(v>0)*2-sc
  return s
+def Q(a,b):
+ global N
+ N+=1;bs=E()*S
+ if N>L or bs>=b:return bs
+ a=max(a,bs)
+ for m in G():
+  if not B[m[1]]and m[2]!=9:continue
+  un=T(m)
+  if not un:continue
+  sc=-Q(-b,-a);M(m,un)
+  bs=max(bs,sc);a=max(a,bs)
+  if a>=b:break
+ return bs
 def Sr(d,a,b):
  global N
  N+=1
- if N>L or d<=0:return E()*S
- ms=G();ms.sort(key=lambda m:-10*V[abs(B[m[1]])]+V[abs(B[m[0]])]-900*(m[2]==5));lg=0;bs=-99999
+ if N>L:return E()*S
+ if d<=0:return Q(a,b)
+ ms=G();ms.sort(key=lambda m:-10*V[abs(B[m[1]])]+V[abs(B[m[0]])]);lg=0;bs=-99999
  for m in ms:
   un=T(m)
   if not un:continue
@@ -113,6 +125,7 @@ def Ch(fen,legal):
  for m in G():
   un=W(m)in legal and T(m)
   if un:cs.append(m);M(m,un)
+ if not cs:return legal[0]
  if len(cs)==1:return W(cs[0])
  bs=cs[0];N=0
  for d in range(9):
@@ -126,7 +139,7 @@ def Ch(fen,legal):
   if ba>90000:break
  return W(bs)
 def main():
- U=os.environ['MAKEFUN_ENV_URL']
+ U=os.getenv('MAKEFUN_ENV_URL')
  def rq(p,o):
   q=R.Request(U+p,data=json.dumps(o).encode());return json.load(R.urlopen(q))
  st=rq('/game',{})
@@ -134,8 +147,5 @@ def main():
   s=st.get('status')
   if s=='done':break
   if s!='your_move':st=rq('/game',{});continue
-  try:mv=Ch(st['fen'],st['legal_moves']);st=rq('/move',{'game':st['game'],'move':mv})
-  except Exception:
-   st=rq('/game',{})
-   if st.get('status')=='your_move':st=rq('/move',{'game':st['game'],'move':st['legal_moves'][0]})
+  mv=Ch(st['fen'],st['legal_moves']);st=rq('/move',{'game':st['game'],'move':mv})
 if __name__=='__main__':main()
