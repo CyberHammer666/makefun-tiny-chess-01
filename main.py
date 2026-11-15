@@ -1,9 +1,12 @@
 import os,json,urllib.request as R
-S=1;C=0;Y=-1;N=0;L=100000;F='abcdefgh'
+S=1;C=0;Y=-1;N=0;L=200000;F='abcdefgh'
 V=[0,100,320,330,500,900,0]
 KN=[-33,-31,-18,-14,14,18,31,33];D=[-16,-1,1,16,-17,-15,15,17];KI=sorted(D)
+def Z(q,v):
+ t=abs(v);r,c=q>>4,q&7;a=r if v>0 else 7-r
+ return(V[t]+(14-abs(2*c-7)-abs(2*r-7))*(1<t<6)+6*a*(t==1))*((v>0)*2-1)
 def P(f):
- global B,S,C,Y,KP
+ global B,S,C,Y,KP,SC
  B=[0]*128;S=1;C=0;Y=-1
  p=f.split();r=7;c=0
  for ch in p[0]:
@@ -12,7 +15,7 @@ def P(f):
   else:B[r*16+c]=('pnbrqk'.index(ch.lower())+1)*((ch<'a')*2-1);c+=1
  S=1-2*(p[1]=='b');C=sum(1<<'KQkq'.index(ch)for ch in p[2]if ch in'KQkq')
  Y=(int(p[3][1])-1)*16+F.index(p[3][0])if p[3]!='-'else-1
- KP=[B.index(6),B.index(-6)]
+ KP=[B.index(6),B.index(-6)];SC=sum(map(Z,range(128),B))
 def A(q,by):
  for O,t,m in(((15,17),1,-by),(KN,2,1),(KI,6,1)):
   for d in O:
@@ -60,21 +63,22 @@ def G():
      if C&bt and B[h+k]==B[h+2*k]==0 and(k>0 or B[h+3*k]==0)and not A(h,e)and not A(h+k,e)and not A(h+2*k,e):ms.append((h,h+2*k,0))
  return ms
 def M(m,u=0):
- global S,C,Y
+ global S,C,Y,SC
  f,t,p=m
  if u:
-  S=-S;mi=0 if S>0 else 1;cap,C,Y,KP[mi]=u
+  S=-S;mi=0 if S>0 else 1;cap,C,Y,KP[mi],SC=u
   B[f]=S if 1<p<9 else B[t]
   if p==9:B[t-16*S]=cap
   B[t]=cap*(p!=9)
-  if B[f]==6*S and abs(t-f)==2:rf=t+1 if t>f else t-2;rt=t-1 if t>f else t+1;B[rf]=B[rt];B[rt]=0
+  if B[f]==6*S and abs(t-f)==2:rf,rt=(t+1,t-1)if t>f else(t-2,t+1);B[rf]=B[rt];B[rt]=0
   return
- mi=0 if S>0 else 1;un=(B[t-16*S]if p==9 else B[t],C,Y,KP[mi])
+ mi=0 if S>0 else 1;cap=B[t-16*S*(p==9)];un=(cap,C,Y,KP[mi],SC)
  if p==9:B[t-16*S]=0
- pc=B[f];B[f]=0;B[t]=S*p if 1<p<9 else pc
+ pc=B[f];SC-=Z(f,pc)+Z(t-16*S*(p==9),cap)
+ B[f]=0;B[t]=S*p if 1<p<9 else pc;SC+=Z(t,B[t])
  if pc==6*S:
   KP[mi]=t
-  if abs(t-f)==2:rf=t+1 if t>f else t-2;rt=t-1 if t>f else t+1;B[rt]=B[rf];B[rf]=0
+  if abs(t-f)==2:rf,rt=(t+1,t-1)if t>f else(t-2,t+1);SC-=Z(rf,B[rf]);B[rt]=B[rf];B[rf]=0;SC+=Z(rt,B[rt])
   C&=(-13,-4)[S>0]
  for z in(f,t):C&=~{0:2,7:1,112:8,119:4}.get(z,0)
  Y=(f+t)//2 if pc==S and abs(t-f)==32 else-1
@@ -82,18 +86,10 @@ def M(m,u=0):
  return un
 def T(m):
  u=M(m);return u if not A(KP[S>0],S)else(M(m,u)or 0)
-def E():
- s=0
- for q in range(128):
-  v=B[q]
-  if q&0x88 or not v:continue
-  t=abs(v);r=q>>4;c=q&7;a=r if v>0 else 7-r;e=14-abs(2*c-7)-abs(2*r-7)
-  sc=V[t]+e*(1<t<6)+6*a*(t==1)
-  s+=sc*(v>0)*2-sc
- return s
+def E():return SC*S
 def Q(a,b,q):
  global N
- N+=1;bs=E()*S
+ N+=1;bs=E()
  if N>L or bs>=b or q<=0:return bs
  a=max(a,bs)
  for m in G():
@@ -109,7 +105,7 @@ def Q(a,b,q):
 def Sr(d,a,b):
  global N
  N+=1
- if N>L:return E()*S
+ if N>L:return E()
  if d<=0:return Q(a,b,6)
  ms=G();ms.sort(key=lambda m:(-V[abs(B[m[1]])],V[abs(B[m[0]])]));lg=0;bs=-99999
  for m in ms:
@@ -128,7 +124,6 @@ def Ch(fen,legal):
   un=W(m)in legal and T(m)
   if un:cs.append(m);M(m,un)
  if not cs:return legal[0]
- if len(cs)==1:return W(cs[0])
  bs=cs[0];N=0
  for d in range(9):
   bb=bs;ba=-99999;cs.sort(key=lambda m:m!=bb)
