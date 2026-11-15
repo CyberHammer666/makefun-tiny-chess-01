@@ -3,8 +3,8 @@ S=1;C=0;Y=-1;N=0;L=200000;F='abcdefgh'
 V=[0,100,320,330,500,900,0]
 KN=[-33,-31,-18,-14,14,18,31,33];D=[-16,-1,1,16,-17,-15,15,17];KI=sorted(D)
 def Z(q,v):
- t=abs(v);r,c=q>>4,q&7;a=r if v>0 else 7-r
- return(V[t]+(14-abs(2*c-7)-abs(2*r-7))*(1<t<6)+6*a*(t==1))*((v>0)*2-1)
+ t=abs(v);r,c=q>>4,q&7;a=r if v>0 else 7-r;e=14-abs(2*c-7)-abs(2*r-7)
+ return(V[t]+e*(1<t<6)+6*a*(t==1)-e//2*(t==6))*((v>0)*2-1)
 def P(f):
  global B,S,C,Y,KP,SC
  B=[0]*128;S=1;C=0;Y=-1
@@ -13,7 +13,8 @@ def P(f):
   if ch=='/':r-=1;c=0
   elif ch.isdigit():c+=int(ch)
   else:B[r*16+c]=('pnbrqk'.index(ch.lower())+1)*((ch<'a')*2-1);c+=1
- S=1-2*(p[1]=='b');C=sum(1<<'KQkq'.index(ch)for ch in p[2]if ch in'KQkq')
+ S=1-2*(p[1]=='b')
+ for ch in p[2]:C|=1<<'KQkq'.find(ch)if ch!='-'else 0
  Y=(int(p[3][1])-1)*16+F.index(p[3][0])if p[3]!='-'else-1
  KP=[B.index(6),B.index(-6)];SC=sum(map(Z,range(128),B))
 def A(q,by):
@@ -30,7 +31,7 @@ def A(q,by):
     break
  return 0
 def G():
- ms=[];pr=7 if S>0 else 0;dd=16*S
+ ms=[];pr=7*(S>0);dd=16*S
  for f in range(128):
   v=B[f]
   if f&0x88 or v*S<=0:continue
@@ -58,9 +59,9 @@ def G():
      if t in(2,6):break
      o+=d
    if t==6:
-    h=116-112*(S>0);e=-S;z=2*(S<0)
+    h=4+112*(S<0);e=-S;z=2*(S<0)
     for k,bt in((1,1<<z),(-1,2<<z)):
-     if C&bt and B[h+k]==B[h+2*k]==0 and(k>0 or B[h+3*k]==0)and not A(h,e)and not A(h+k,e)and not A(h+2*k,e):ms.append((h,h+2*k,0))
+     if C&bt and B[h+k]==B[h+2*k]==0 and(k>0 or B[h+3*k]==0)and not(A(h,e)or A(h+k,e)or A(h+2*k,e)):ms.append((h,h+2*k,0))
  return ms
 def M(m,u=0):
  global S,C,Y,SC
