@@ -91,16 +91,18 @@ def E():
   sc=V[t]+e*(1<t<6)+6*a*(t==1)
   s+=sc*(v>0)*2-sc
  return s
-def Q(a,b):
+def Q(a,b,q):
  global N
  N+=1;bs=E()*S
- if N>L or bs>=b:return bs
+ if N>L or bs>=b or q<=0:return bs
  a=max(a,bs)
  for m in G():
-  if not B[m[1]]and m[2]!=9:continue
+  v=B[m[1]]
+  if not v and m[2]!=9:continue
+  if bs+V[abs(v)]+150<a:continue
   un=T(m)
   if not un:continue
-  sc=-Q(-b,-a);M(m,un)
+  sc=-Q(-b,-a,q-1);M(m,un)
   bs=max(bs,sc);a=max(a,bs)
   if a>=b:break
  return bs
@@ -108,8 +110,8 @@ def Sr(d,a,b):
  global N
  N+=1
  if N>L:return E()*S
- if d<=0:return Q(a,b)
- ms=G();ms.sort(key=lambda m:-10*V[abs(B[m[1]])]+V[abs(B[m[0]])]);lg=0;bs=-99999
+ if d<=0:return Q(a,b,6)
+ ms=G();ms.sort(key=lambda m:(-V[abs(B[m[1]])],V[abs(B[m[0]])]));lg=0;bs=-99999
  for m in ms:
   un=T(m)
   if not un:continue
@@ -136,7 +138,6 @@ def Ch(fen,legal):
    if N>L:break
   if N>L:break
   bs=bb
-  if ba>90000:break
  return W(bs)
 def main():
  U=os.getenv('MAKEFUN_ENV_URL')
