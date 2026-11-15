@@ -2,10 +2,10 @@ import os,json,urllib.request as R
 S=1;C=0;Y=-1;N=0;L=200000;F='abcdefgh'
 V=[0,100,320,330,500,900,0]
 KN=[-33,-31,-18,-14,14,18,31,33];D=[-16,-1,1,16,-17,-15,15,17]
-PT='00000024248:48>B8>FL>FPXHR^r0000'
+PT='00000024248:48>B8>FL>FPXHR^r0000';NT='$*04*08<08@D4<DJ4<DJ08@D*08<$*04'
 def Z(q,v):
- t=abs(v);r,c=q>>4,q&7;e=14-abs(2*c-7)-abs(2*r-7)
- return(V[t]+(ord(PT[(r if v>0 else 7-r)*4+min(c,7-c)])-48 if t==1 else e*(1<t<5)-e//2*(t==6)))*((v>0)*2-1)
+ t=abs(v);r,c=q>>4,q&7;e=14-abs(2*c-7)-abs(2*r-7);i=(r if v>0 else 7-r)*4+min(c,7-c)
+ return(V[t]+(ord((PT if t==1 else NT)[i])-48 if 0<t<4 else e*(1<t<5)-e//2*(t==6)))*((v>0)*2-1)
 def P(f):
  global B,S,C,Y,KP,SC
  B=[0]*128;S=1;C=0;Y=-1
@@ -68,13 +68,13 @@ def M(m,u=0):
  global S,C,Y,SC
  f,t,p=m
  if u:
-  S=-S;mi=0 if S>0 else 1;cap,C,Y,KP[mi],SC=u
+  S=-S;mi=S<0;cap,C,Y,KP[mi],SC=u
   B[f]=S if 1<p<9 else B[t]
   if p==9:B[t-16*S]=cap
   B[t]=cap*(p!=9)
   if B[f]==6*S and abs(t-f)==2:rf,rt=(t+1,t-1)if t>f else(t-2,t+1);B[rf]=B[rt];B[rt]=0
   return
- mi=0 if S>0 else 1;cap=B[t-16*S*(p==9)];un=(cap,C,Y,KP[mi],SC)
+ mi=S<0;cap=B[t-16*S*(p==9)];un=(cap,C,Y,KP[mi],SC)
  if p==9:B[t-16*S]=0
  pc=B[f];SC-=Z(f,pc)+Z(t-16*S*(p==9),cap)
  B[f]=0;B[t]=S*p if 1<p<9 else pc;SC+=Z(t,B[t])
@@ -87,7 +87,7 @@ def M(m,u=0):
  S=-S
  return un
 def T(m):
- u=M(m);return u if not A(KP[S>0],S)else M(m,u)
+ u=M(m);return M(m,u)if A(KP[S>0],S)else u
 def E():return SC*S
 def Q(a,b,q):
  global N
@@ -95,9 +95,7 @@ def Q(a,b,q):
  if N>L or bs>=b or q<=0:return bs
  a=max(a,bs)
  for m in G():
-  v=B[m[1]]
-  if not v and m[2]!=9:continue
-  if bs+V[-v*S]+150<a:continue
+  if(m[2]!=9 and not B[m[1]])or bs+V[-B[m[1]]*S]+150<a:continue
   un=T(m)
   if not un:continue
   sc=-Q(-b,-a,q-1);M(m,un)
@@ -109,7 +107,7 @@ def Sr(d,a,b):
  N+=1
  if N>L:return E()
  if d<=0:return Q(a,b,6)
- ms=G();ms.sort(key=lambda m:(-V[-B[m[1]]*S],V[B[m[0]]*S]));lg=0;bs=-99999
+ ms=G();ms.sort(key=lambda m:-V[-B[m[1]]*S]);lg=0;bs=-99999
  for m in ms:
   un=T(m)
   if not un:continue
@@ -125,7 +123,6 @@ def Ch(fen,legal):
  for m in G():
   un=W(m)in legal and T(m)
   if un:cs.append(m);M(m,un)
- if not cs:return legal[0]
  bs=cs[0];N=0
  for d in range(9):
   bb=bs;ba=-99999;cs.sort(key=lambda m:m!=bb)
