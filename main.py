@@ -1,0 +1,141 @@
+import os,json,urllib.request as R
+S=1;C=0;Y=-1;N=0;L=40000;F='abcdefgh'
+V=[0,100,320,330,500,900,0]
+KN=[-33,-31,-18,-14,14,18,31,33];D=[-16,-1,1,16,-17,-15,15,17];KI=sorted(D)
+def P(f):
+ global B,S,C,Y,KP
+ B=[0]*128;S=1;C=0;Y=-1
+ p=f.split();r=7;c=0
+ for ch in p[0]:
+  if ch=='/':r-=1;c=0
+  elif ch.isdigit():c+=int(ch)
+  else:B[r*16+c]=('pnbrqk'.index(ch.lower())+1)*(ch.isupper()*2-1);c+=1
+ S=1-2*(p[1]=='b');C=sum(1<<'KQkq'.index(ch)for ch in p[2]if ch in'KQkq')
+ Y=(int(p[3][1])-1)*16+F.index(p[3][0])if p[3]!='-'else-1
+ KP=[B.index(6),B.index(-6)]
+def A(q,by):
+ for O,t,m in(((15,17),1,-by),(KN,2,1),(KI,6,1)):
+  for d in O:
+   s=q+m*d
+   if not s&0x88 and B[s]==by*t:return 1
+ for i,d in enumerate(D):
+  s=q
+  while not(s:=s+d)&0x88:
+   v=B[s]
+   if v:
+    if v in(by*5,by*(3+(i<4))):return 1
+    break
+ return 0
+def G():
+ ms=[];pr=7 if S>0 else 0;dd=16*S
+ for f in range(128):
+  v=B[f]
+  if f&0x88 or v*S<=0:continue
+  t=abs(v)
+  if t==1:
+   o=f+dd
+   if not B[o]:
+    if o>>4==pr:ms+=[(f,o,p)for p in(5,4,3,2)]
+    else:
+     ms.append((f,o,0))
+     if f>>4==(1 if S>0 else 6)and not B[o+dd]:ms.append((f,o+dd,0))
+   for o in(f+dd-1,f+dd+1):
+    if o&0x88:continue
+    if B[o]*S<0:
+     if o>>4==pr:ms+=[(f,o,p)for p in(5,4,3,2)]
+     else:ms.append((f,o,0))
+    elif o==Y:ms.append((f,o,9))
+  else:
+   ds=(KN,D[4:],D[:4],D,KI)[t-2]
+   for d in ds:
+    o=f+d
+    while not o&0x88:
+     if B[o]:
+      if B[o]*S<0:ms.append((f,o,0))
+      break
+     ms.append((f,o,0))
+     if t in(2,6):break
+     o+=d
+   if t==6:
+    h=4 if S>0 else 116;e=-S;z=2*(S<0)
+    for k,bt in((1,1<<z),(-1,2<<z)):
+     if C&bt and not B[h+k]and not B[h+2*k]and(k>0 or not B[h+3*k])and not A(h,e)and not A(h+k,e)and not A(h+2*k,e):ms.append((h,h+2*k,0))
+ return ms
+def M(m,u=0):
+ global S,C,Y
+ f,t,p=m
+ if u:
+  S=-S;mi=0 if S>0 else 1;cap,C,Y,KP[mi]=u
+  B[f]=S if 1<p<9 else B[t]
+  if p==9:B[t-16*S]=cap
+  B[t]=cap*(p!=9)
+  if B[f]==6*S and abs(t-f)==2:rf=t+1 if t>f else t-2;rt=t-1 if t>f else t+1;B[rf]=B[rt];B[rt]=0
+  return
+ mi=0 if S>0 else 1;un=(B[t-16*S]if p==9 else B[t],C,Y,KP[mi])
+ if p==9:B[t-16*S]=0
+ pc=B[f];B[f]=0;B[t]=S*p if 1<p<9 else pc
+ if pc==6*S:
+  KP[mi]=t
+  if abs(t-f)==2:rf=t+1 if t>f else t-2;rt=t-1 if t>f else t+1;B[rt]=B[rf];B[rf]=0
+  C&=(-13,-4)[S>0]
+ for z in(f,t):C&=~{0:2,7:1,112:8,119:4}.get(z,0)
+ Y=(f+t)//2 if pc==S and abs(t-f)==32 else-1
+ S=-S
+ return un
+def T(m):
+ u=M(m);return u if not A(KP[S>0],S)else(M(m,u)or 0)
+def E():
+ s=0
+ for q in range(128):
+  v=B[q]
+  if q&0x88 or not v:continue
+  t=abs(v);r=q>>4;c=q&7;a=r if v>0 else 7-r;e=14-abs(2*c-7)-abs(2*r-7)
+  sc=V[t]+e*(1<t<6)-e//2*(t==6)+6*a*(t==1)+4*(a==6)*(t==4)
+  s+=sc if v>0 else -sc
+ return s
+def Sr(d,a,b):
+ global N
+ N+=1
+ if N>L or d<=0:return E()*S
+ ms=G();ms.sort(key=lambda m:-10*V[abs(B[m[1]])]+V[abs(B[m[0]])]-900*(m[2]==5));lg=0;bs=-99999
+ for m in ms:
+  un=T(m)
+  if not un:continue
+  lg+=1;sc=-Sr(d-1,-b,-a);M(m,un)
+  a=max(a,bs:=max(bs,sc))
+  if a>=b:break
+ if not lg:return -99999 if A(KP[S<0],-S)else 0
+ return bs
+def W(m):a,b,p=m;return F[a&7]+str((a>>4)+1)+F[b&7]+str((b>>4)+1)+('nbrq'[p-2]if 1<p<9 else'')
+def Ch(fen,legal):
+ global N
+ P(fen);cs=[]
+ for m in G():
+  un=W(m)in legal and T(m)
+  if un:cs.append(m);M(m,un)
+ if len(cs)==1:return W(cs[0])
+ bs=cs[0];N=0
+ for d in range(9):
+  bb=bs;ba=-99999;cs.sort(key=lambda m:m!=bb)
+  for m in cs:
+   un=M(m);sc=-Sr(d,-99999,99999);M(m,un)
+   if sc>ba:ba,bb=sc,m
+   if N>L:break
+  if N>L:break
+  bs=bb
+  if ba>90000:break
+ return W(bs)
+def main():
+ U=os.environ['MAKEFUN_ENV_URL']
+ def rq(p,o):
+  q=R.Request(U+p,data=json.dumps(o).encode());return json.load(R.urlopen(q))
+ st=rq('/game',{})
+ while 1:
+  s=st.get('status')
+  if s=='done':break
+  if s!='your_move':st=rq('/game',{});continue
+  try:mv=Ch(st['fen'],st['legal_moves']);st=rq('/move',{'game':st['game'],'move':mv})
+  except Exception:
+   st=rq('/game',{})
+   if st.get('status')=='your_move':st=rq('/move',{'game':st['game'],'move':st['legal_moves'][0]})
+if __name__=='__main__':main()
